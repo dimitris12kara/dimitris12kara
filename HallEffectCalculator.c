@@ -67,7 +67,7 @@ HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
 	if(htim==&htim6) hf1.rpm = 0;
 	else if(htim==&htim7) hf2.rpm = 0;
-
+}
 
 
 int main(void){
