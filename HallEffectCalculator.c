@@ -93,25 +93,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
 	if(htim==hf1.timeOutTimer) hf1.rpm = 0;
 	else if(htim==hf2.timeOutTimer) hf2.rpm = 0;
 }
-HAL_StatusTypeDef hallEffectInit(hallEffectSensor _hf, float _radius, TIM_HandleTypeDef _counter, TIM_HandleTypeDef _timeOutTimer, float _tuner, uint16_t _interruptPin){
-	_hf.isReady = 0;
-	_hf.radius = _radius;
-	_hf.counter = &_counter;
-	_hf.timeOutTimer = &_timeOutTimer;
-	_hf.tuner = _tuner;
-	_hf.clock_ratio = HAL_RCC_GetHCLKFreq()/(_hf.counter->Init.Prescaler+1);
-	_hf.interruptPin = _interruptPin;
-	return HAL_TIM_Base_Start_IT(_hf.timeOutTimer);
+HAL_StatusTypeDef hallEffectInit(hallEffectSensor *_hf, float _radius, TIM_HandleTypeDef _counter, TIM_HandleTypeDef _timeOutTimer, float _tuner, uint16_t _interruptPin){
+	_hf->isReady = 0;
+	_hf->radius = _radius;
+	_hf->counter = &_counter;
+	_hf->timeOutTimer = &_timeOutTimer;
+	_hf->tuner = _tuner;
+	_hf->clock_ratio = HAL_RCC_GetHCLKFreq()/(_hf->counter->Init.Prescaler+1);
+	_hf->interruptPin = _interruptPin;
+	return HAL_TIM_Base_Start_IT(_hf->timeOutTimer);
 }
-void hallEffectCalculator(hallEffectSensor hf){
-	  if(hf.isReady==1){
-		  hf.isReady=0;
-		  hf.time_now = __HAL_TIM_GET_COUNTER(hf.counter);
-		  hf.rpm = PI*hf.clock_ratio/(hf.time_now-hf.time_before);
-		  hf.vehicle_speed = 2*PI*hf.radius*hf.rpm;
-		  hf.rpm = GEAR_RATIO*(RPM_CONVERSION*hf.rpm)*hf.tuner;
-		  hf.time_before = hf.time_now;
-		  hf.timeOutTimer->Instance->CNT = 0;
+void hallEffectCalculator(hallEffectSensor *_hf){
+	  if(_hf->isReady==1){
+		  _hf->isReady=0;
+		  _hf->time_now = __HAL_TIM_GET_COUNTER(_hf->counter);
+		  _hf->rpm = PI*_hf->clock_ratio/(_hf->time_now-_hf->time_before);
+		  _hf->vehicle_speed = 2*PI*_hf->radius*_hf->rpm;
+		  _hf->rpm = GEAR_RATIO*(RPM_CONVERSION*_hf->rpm)*_hf->tuner;
+		  _hf->time_before = _hf->time_now;
+		  _hf->timeOutTimer->Instance->CNT = 0;
 	  }
 	  return;
 }
@@ -153,8 +153,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   if(HAL_TIM_Base_Start_IT(&htim2)!= HAL_OK) Error_Handler(); //Counter starts only once
-  if(hallEffectInit(hf1, 0.12, htim2,htim6,1,GPIO_PIN_7)!= HAL_OK) Error_Handler();
-  if(hallEffectInit(hf2, 0.12, htim2,htim7,1,GPIO_PIN_6)!= HAL_OK) Error_Handler();
+  if(hallEffectInit(&hf1, 0.12, htim2,htim6,1,GPIO_PIN_7)!= HAL_OK) Error_Handler();
+  if(hallEffectInit(&hf2, 0.12, htim2,htim7,1,GPIO_PIN_6)!= HAL_OK) Error_Handler();
 
   /* USER CODE END 2 */
 
@@ -162,8 +162,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  hallEffectCalculator(hf1);
-	  hallEffectCalculator(hf2);
+	  hallEffectCalculator(&hf1);
+	  hallEffectCalculator(&hf2);
 
     /* USER CODE END WHILE */
 
