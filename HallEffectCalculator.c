@@ -26,6 +26,20 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct hallEffectSensor{
+	TIM_HandleTypeDef* counter;
+	TIM_HandleTypeDef* timeOutTimer;
+	uint32_t time_now;
+	uint32_t time_before;
+	uint16_t rpm;
+	float vehicle_speed;
+	float radius;
+	float tuner;
+	uint16_t clock_ratio;
+	uint8_t isReady;
+	uint16_t interruptPin;
+
+}hallEffectSensor;
 
 /* USER CODE END PTD */
 
@@ -66,35 +80,60 @@ static void MX_I2C1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//struct hallEffectSensor{
+//
+//	uint32_t time_now;
+//	uint32_t time_before;
+//	uint16_t rpm;
+//	float vehicle_speed;
+//	float radius;
+//	uint8_t isReady;
+//
+//};
+hallEffectSensor hf1;
+hallEffectSensor hf2;
+//uint8_t flag1 = 0;
+//uint8_t flag2 = 0;
 
-struct hallEffectSensor hf1;
-struct hallEffectSensor hf2;
 
+//uint32_t time1_before=0;
+//uint32_t time1_now=0;
+//uint32_t time2_before=0;
+//uint32_t time2_now=0;
+//uint16_t rpm1;
+//uint16_t rpm2;
+//float vehicle_speed1;
+//float vehicle_speed2;
+//float radius1 = 0.12;
+//float radius2 = 0.12;
 float gear_ratio = 6.3;
 float rpm_conv = 9.5492;
 float pi = 3.141592;
-HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if(GPIO_Pin==GPIO_PIN_7) hf1.isReady = 1;
-	else hf2.isReady = 1;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin==hf1.interruptPin) hf1.isReady = 1;
+	else if(GPIO_Pin==hf2.interruptPin) hf2.isReady = 1;
 	return;
 
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
-	if(htim==&htim6) hf1.rpm = 0;
-	else if(htim==&htim7) hf2.rpm = 0;
+	if(htim==hf1.timeOutTimer) hf1.rpm = 0;
+	else if(htim==hf2.timeOutTimer) hf2.rpm = 0;
 
 }
-void hallEffectInit(struct hallEffectSensor hf, float radius_, TIM_HandleTypeDef counter_, TIM_HandleTypeDef timeOutTimer_, float tuner_){
-	hf.isReady = 0;
-	hf.radius = radius_;
-	hf.counter = &counter_;
-	hf.timeOutTimer = &timeOutTimer_;
-	hf.tuner = tuner_;
-	hf.clock_ratio = HAL_RCC_GetHCLKFreq()/(hf.counter->Init.Prescaler+1);
+HAL_StatusTypeDef hallEffectInit(hallEffectSensor _hf, float _radius, TIM_HandleTypeDef _counter, TIM_HandleTypeDef _timeOutTimer, float _tuner, uint16_t _interruptPin){
+	_hf.isReady = 0;
+	_hf.radius = _radius;
+	_hf.counter = &_counter;
+	_hf.timeOutTimer = &_timeOutTimer;
+	_hf.tuner = _tuner;
+	_hf.clock_ratio = HAL_RCC_GetHCLKFreq()/(_hf.counter->Init.Prescaler+1);
+	_hf.interruptPin = _interruptPin;
+	return HAL_TIM_Base_Start_IT(_hf.timeOutTimer);
+
 
 
 }
-void hallEffectCalculator(struct hallEffectSensor hf){
+void hallEffectCalculator(hallEffectSensor hf){
 	  if(hf.isReady==1){
 		  hf.isReady=0;
 		  hf.time_now = __HAL_TIM_GET_COUNTER(hf.counter);
@@ -148,10 +187,8 @@ int main(void)
 //  hf1.radius = 0.12;
 //  hf2.radius = 0.12;
   HAL_TIM_Base_Start_IT(&htim2);
-  HAL_TIM_Base_Start_IT(&htim6);
-  HAL_TIM_Base_Start_IT(&htim7);
-  hallEffectInit(hf1, 0.12, htim2,htim6,1);
-  hallEffectInit(hf2, 0.12, htim2,htim7,1);
+  hallEffectInit(hf1, 0.12, htim2,htim6,1,GPIO_PIN_7);
+  hallEffectInit(hf2, 0.12, htim2,htim7,1,GPIO_PIN_6);
 
   /* USER CODE END 2 */
 
@@ -159,9 +196,28 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  temp = HAL_RCC_GetHCLKFreq()/(htim2.Init.Prescaler+1);
 	  hallEffectCalculator(hf1);
 	  hallEffectCalculator(hf2);
-
+//	  if(hf1.isReady==1){
+//		  hf1.isReady=0;
+//		  hf1.time_now = __HAL_TIM_GET_COUNTER(&htim2);
+//		  hf1.rpm = pi*100000/(hf1.time_now-hf1.time_before);
+//		  hf1.vehicle_speed = 2*pi*hf1.radius*hf1.rpm;
+//		  hf1.rpm = transmission_step_down*(rpm_conv*hf1.rpm);
+//		  hf1.time_before = hf1.time_now;
+//		  TIM6->CNT = 0;
+//	  }
+//	  if(hf2.isReady==1){
+//		  hf2.isReady=0;
+//		  hf2.time_now = __HAL_TIM_GET_COUNTER(&htim2);//sec
+//		  hf2.rpm = 100000/(hf2.time_now-hf2.time_before); //rad/s
+//		  hf2.vehicle_speed = 2*pi*hf2.radius*hf2.rpm;//m/s
+//		  hf2.rpm = transmission_step_down*rpm_conv*hf2.rpm; //RPM
+//		  hf2.time_before = hf2.time_now;
+//		  TIM7->CNT = 0;
+//
+//	  }
 
     /* USER CODE END WHILE */
 
